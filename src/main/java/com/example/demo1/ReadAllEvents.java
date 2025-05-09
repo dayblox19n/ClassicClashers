@@ -1,9 +1,8 @@
+package com.example.demo1;
 
-import net.java.games.input.Component;
-import net.java.games.input.Controller;
-import net.java.games.input.ControllerEnvironment;
-import net.java.games.input.Event;
-import net.java.games.input.EventQueue;
+import net.java.games.input.*;
+
+import java.util.Arrays;
 
 /**
  * This class shows how to use the event queue system in JInput. It will show
@@ -16,9 +15,11 @@ public class ReadAllEvents {
 
 	public ReadAllEvents() {
 		while (true) {
+			System.setProperty("net.java.games.input.useDefaultPlugin", "false");
 			/* Get the available controllers */
 			Controller[] controllers = ControllerEnvironment
 					.getDefaultEnvironment().getControllers();
+			System.out.println(Arrays.toString(controllers));
 			if (controllers.length == 0) {
 				System.out.println("Found no controllers.");
 				System.exit(0);

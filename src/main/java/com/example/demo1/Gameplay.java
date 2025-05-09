@@ -1,80 +1,67 @@
 package com.example.demo1;
 
-import javafx.animation.AnimationTimer;
-import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 
 import java.util.List;
 
 
-enum Inputs {
-    A, //Controller Buttons
-    B,
-    X,
-    Y,
-    DUp,
-    DDown,
-    DLeft,
-    DRight,
-    LEFT, //Controller Stick Positions
-    LEFT_BOTTOM,
-    LEFT_TOP,
-    TOP,
-    BOTTOM,
-    RIGHT,
-    RIGHT_BOTTOM,
-    RIGHT_TOP,
-}
+
 
 public class Gameplay {
-    private Inputs input;
-    private final AnimationTimer timer = new AnimationTimer() {
-        @Override
-        public void handle(long l) {
-            //update();
-            newInput();
-        }
-    };
-    public Gameplay(int TPS, int FPS) {
-    }
-    public void update(List<Sprite> sprites, List<Fighter> fighters,Pane pane) {
+    private int counter = 0;
+    GUI gui = new GUI();
+    public void update(List<Sprite> sprites, List<Fighter> fighters,List<Attack> attacks,Pane p, GUI gui) {
         fighters.forEach(fighter -> {
-            if (fighter.checkState().equals(charState.Jumping))
-                fighter.jump();
-            fighter.move();
+            try {
+                if (fighter.checkState().equals(charState.Jumping))
+                    fighter.jump();
+                if (fighter.checkState().equals(charState.Recoiling))
+                    fighter.jump(3,2);
+                if (fighter.checkState().equals(charState.Hit))
+                    fighter.knockBack(attacks.get(0).getKnockback());
+            } catch (Exception e) {
+            }
+            fighter.update();
             fighter.gravity();
-
-            sprites.stream().filter(sprite1 -> sprite1.getType().equals("Hurt")).forEach(sprite1 -> {
-                if (fighter.contains(sprite1.getX(), sprite1.getY())) {
-                    fighter.knockBack();
+            fighters.forEach(fighter1 -> {
+                if (fighter.getFighterX() < fighter1.getFighterX()) {
+                    fighter.updateOri("right");
+                    fighter1.updateOri("left");
+                } else {
+                    fighter.updateOri("left");
+                    fighter1.updateOri("right");
                 }
+                fighter.checkTouchingOpponent(fighter.getBoundsInParent().intersects(fighter1.getBoundsInParent()));
             });
 
+            attacks.forEach(attack -> {
+                attack.checkState();
+                if (attack.getBoundsInParent().intersects(fighter.getBoundsInParent())  && !attack.getFighter().equals(fighter) && attack.getType().equals("Hit_Active")) {
+                    //gui.updateGameScreen(p);
+                    if (fighter.checkState().equals(charState.Backing))
+                        fighter.block(attack,gui);
+                    else {
+                        fighter.damage(attack,gui);
+                        fighter.knockBack(attack.getKnockback());
+                    }
+                }
+                if (attack.isFinished()){
+                    eraseAttacks(attack.getFighter(), p);
+                }
+            });
         });
+    }
 
-
+    public void renderAttacks(Fighter fighter, Pane p) {
+        p.getChildren().add(fighter.getCurAtk());
+    }
+    public void eraseAttacks(Fighter fighter, Pane p) {
+        p.getChildren().remove(fighter.getCurAtk());
+        if (fighter.checkState().equals(charState.Attacking))
+            fighter.setState(charState.Neutral);
+        else if (fighter.checkState().equals(charState.Recoiling)) {
+            fighter.setState(charState.Recoiling);
 
         }
-
-//        for (Fighter fighter : fighters) {
-//            if (fighter.checkState().equals(charState.Jumping))
-//                fighter.jump();
-//            fighter.move();
-//            fighter.gravity();
-//        }
-
-
-    public void startGameTimer() {
-        timer.start();
-    }
-    public void pauseGameTimer() throws InterruptedException {
-        timer.wait();}
-    public void stopGameTimer() {
-        timer.stop();}
-    public void tick() {}
-    public void newInput(){
-
-
-
     }
 }

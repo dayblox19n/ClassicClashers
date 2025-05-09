@@ -16,7 +16,6 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
@@ -28,26 +27,23 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 
-import java.awt.geom.Point2D;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 public class ClashersMain extends Application {
-
-    static Map map = new Map("Map", 0, null);
-    Gameplay game = new Gameplay(20,60);
     GUI gui = new GUI();
+    static Map map = new Map("Map", 0, null);
+    Gameplay game = new Gameplay();
     private Fighter player1 = new Blank(),
             player2 = new Blank();
-
-    private boolean Dialogue = false, currentRound = false, paused = false,
-             singleplayer = false, multiplayer = false,
+    Pane fighterRoot = new Pane();
+    private boolean currentRound = false, paused = false,
+             singleplayer = false, training = false, multiplayer = false,
     isReady1 = false, isReady2 = false, fSet1 = false, fSet2 = false;
     Scene curScene = new Scene(initMainMenu());
     Stage primaryStage = new Stage();
@@ -98,10 +94,9 @@ public class ClashersMain extends Application {
     }
     private Parent initCharSelect(){ //Sets up the Character Selection Menu
         Pane charRoot = new Pane();
-        Pane fighterRoot = new Pane();
         Rectangle iconFlash = new Rectangle(200*gui.getScalar(), 200,600,500); //Sets up the little icon flash that appears when selecting a character
         Rectangle icon = new Rectangle(0, gui.getHeight()-400,400,300);
-        Rectangle icon2 = new Rectangle(0, gui.getHeight()-400,400,300);
+        Rectangle icon2 = new Rectangle(600*gui.getScalar(), gui.getHeight()-400,400,300);
 
 
 
@@ -112,6 +107,9 @@ public class ClashersMain extends Application {
             curScene.setRoot(modeSelect());
             singleplayer = false;
             multiplayer = false;
+            training = false;
+            player2 = new Blank();
+            player1 = new Blank();
             resetReady();
         });
         HBox back = new HBox();
@@ -124,14 +122,13 @@ public class ClashersMain extends Application {
 
             if (!fSet1) {
 
-                player1 = new Wyll("Wyll",350,2,5,175,100,fighterRoot); //Switches the player1 Fighter from "Blank" to a real fighter
+                player1 = new Wyll("Player 1",350,2,5,175,100,fighterRoot,"left"); //Switches the player1 Fighter from "Blank" to a real fighter
                 gui.flashSetUp(charRoot,iconFlash);
                 try {
                     gui.flashStop(); //Overrides if another flash is currently in motion
                     FileInputStream input = new FileInputStream("src/Images/Character Images/Wyll Icon.png");
                     gui.iconSetUp(charRoot,iconFlash,icon,input);
                     gui.flashStart();
-                  //  if (fighter.flashIsFinished()) fSet1 = true;
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
 
@@ -139,8 +136,7 @@ public class ClashersMain extends Application {
                 fSet1 = true;
             } else {
 
-                Fighter fighter2 = new Wyll("Wyll",350,2,5,175,100,fighterRoot);
-
+                player2 = new Wyll("Wyll",350,2,5,175,100,fighterRoot,"right"); //Switches the player1 Fighter from "Blank" to a real fighter
                 gui.flashSetUp(charRoot,iconFlash);
                 try {
                     gui.flashStop();
@@ -158,7 +154,7 @@ public class ClashersMain extends Application {
         Fighters.get(1).setOnAction(actionEvent -> {
             if (!fSet1) {
 
-                player1 = new Monke("Monke",220,3,3,135,90,fighterRoot);
+                player1 = new Monke("Monke",220,3,3,135,90,fighterRoot,"left");
                 gui.flashSetUp(charRoot,iconFlash);
                 try {
                     gui.flashStop();
@@ -170,7 +166,7 @@ public class ClashersMain extends Application {
                 }
                 fSet1 = true;
             } else {
-                Fighter fighter2 = new Monke("Monke",220,3,3,135,90,fighterRoot);
+                Fighter fighter2 = new Monke("Monke",220,3,3,135,90,fighterRoot,"left");
                 gui.flashSetUp(charRoot,iconFlash);
                 try {
                     gui.flashStop();
@@ -186,7 +182,7 @@ public class ClashersMain extends Application {
 
         Fighters.add(new Button("SKELLINGTON")); //GUNGEON
         Fighters.get(2).setOnAction(actionEvent -> {
-            player1 = new Skellington("Skellington",440,1,7,140,105,fighterRoot);
+            player1 = new Skellington("Skellington",440,1,7,140,105,fighterRoot,"left");
             gui.flashSetUp(charRoot,iconFlash);
             if (!fSet1) {
                 fSet1 = true;
@@ -197,7 +193,7 @@ public class ClashersMain extends Application {
 
         Fighters.add(new Button("MIMI")); //MIMIC
         Fighters.get(3).setOnAction(actionEvent -> {
-            player1 = new Mimi("Mimi",240,1,2,260,120,fighterRoot);
+            player1 = new Mimi("Mimi",240,1,2,260,120,fighterRoot,"left");
             gui.flashSetUp(charRoot,iconFlash);
             try {
                 gui.flashStop();
@@ -216,7 +212,7 @@ public class ClashersMain extends Application {
 
         Fighters.add(new Button("TODD")); //THACHER
         Fighters.get(4).setOnAction(actionEvent -> {
-            player1 = new Todd("Todd",200,3,3,260,95,fighterRoot);
+            player1 = new Todd("Todd",200,3,3,260,95,fighterRoot,"left");
             gui.flashSetUp(charRoot,iconFlash);
             if (!fSet1) {
                 fSet1 = true;
@@ -350,7 +346,20 @@ public class ClashersMain extends Application {
         mapName.setScaleY(10*gui.getScalar());
         Rectangle loading = new Rectangle(gui.getWidth()-150, gui.getHeight()-150,100*gui.getScalar(),100*gui.getScalar());
 
-
+        player1.setFighterY(player1.getGroundHeight()); //Places players at their locations
+        player1.setFighterX(700);
+        player2.setFighterY(player2.getGroundHeight());
+        player2.setFighterX(300);
+        player1.setState(charState.Neutral);
+        player2.setState(charState.Neutral);
+        player1.pickOnBoundsProperty().set(true);
+        player2.pickOnBoundsProperty().set(true);
+        player1.getFighterHealthProperty().addListener((observable, oldValue, newValue) -> {
+            System.out.println("Player 1 Health: " + newValue);
+        });
+        player2.getFighterHealthProperty().addListener((observable, oldValue, newValue) -> {
+            System.out.println("Player 2 Health: " + newValue);
+        });
 
         RotateTransition rotate = new RotateTransition();
         rotate.setByAngle(360f);
@@ -376,39 +385,40 @@ public class ClashersMain extends Application {
     private List<Fighter> fighters(){
         return curScene.getRoot().getChildrenUnmodifiable().stream().filter(node -> Fighter.class.isAssignableFrom(node.getClass())).map(n -> (Fighter)n).collect(Collectors.toList());
     } //Creates a List of ALL Fighters on Screen
+    private List<Attack> attacks(){
+        return curScene.getRoot().getChildrenUnmodifiable().stream().filter(node -> Attack.class.isAssignableFrom(node.getClass())).map(n -> (Attack)n).collect(Collectors.toList());
+    }
     private Parent Map(){ //Generates the Map and starts the Timer
         Pane mapRoot = new Pane();
         mapRoot.setPrefSize(gui.getWidth(), gui.getHeight());
-
         Pane cinBars = new Pane(); //Adds Black Bars on Top and Bottom of Screen for Cinematic Effect
         Rectangle cinBarTop = new Rectangle(0, 0, gui.getWidth(), 100);
         Rectangle cinBarBottom = new Rectangle(0, gui.getHeight()-100, gui.getWidth(), 100);
         cinBarBottom.setFill(Color.BLACK);
         cinBarTop.setFill(Color.BLACK);
         cinBars.getChildren().addAll(cinBarTop,cinBarBottom);
-
         Rectangle arenaBG = new Rectangle(-map.getWidth()/4-50, 0, map.getWidth(), gui.getHeight()); //Creates the actual Arena that will be battled on
-        Image image = new javafx.scene.image.Image(map.getFile());
-        ImagePattern image_pattern = new ImagePattern(image);
-        arenaBG.setFill(image_pattern);
-
-        player1.setFighterY(player1.getGroundHeight()); //Places players at their locations
-        player1.setFighterX(300);
+        map.genMap(arenaBG);
 
 
-        mapRoot.getChildren().addAll(arenaBG,cinBars, player1);
+
+        mapRoot.getChildren().addAll(arenaBG,cinBars, player1,player2);
         currentRound = true;
+        gui.setGameScreen(mapRoot);
         AnimationTimer timer = new AnimationTimer() { //Starts the Game Timer
             @Override
             public void handle(long now) {
                 if (!paused) {
-                    if (new HashSet<>(mapRoot.getChildren()).containsAll(pauseMenu())) {
-                        mapRoot.getChildren().removeAll(pauseMenu());
-                    }
-                    game.update(sprites(),fighters(),mapRoot);
+                    game.update(sprites(),fighters(),attacks(),(Pane)curScene.getRoot(),gui);
+                    map.update(arenaBG,fighters());
+                    gui.updateGameScreen(mapRoot);
+                    //gui.damage(player2,1);
                 }
-                else
-                    mapRoot.getChildren().addAll(pauseMenu());
+                else {
+                    if (!new HashSet<>(mapRoot.getChildren()).containsAll(pauseMenu())) {
+                        mapRoot.getChildren().addAll(pauseMenu());
+                    }
+                }
             }
         };
         timer.start();
@@ -427,15 +437,21 @@ public class ClashersMain extends Application {
                 if (currentRound) {
                     switch (event.getCode()) {
                         case LEFT:
-                            if (!player1.checkState().equals(charState.Jumping))
-                                player1.setState(charState.Backing);
+                            if (player1.isNotBusy())
+                                if (player1.getOrient().equals("right"))
+                                    player1.setState(charState.Backing);
+                                else if (player1.getOrient().equals("left"))
+                                    player1.setState(charState.Walking);
                             break;
                         case RIGHT:
-                            if (!player1.checkState().equals(charState.Jumping))
-                                player1.setState(charState.Walking);
+                            if (player1.isNotBusy())
+                                if (player1.getOrient().equals("left"))
+                                    player1.setState(charState.Backing);
+                                else if (player1.getOrient().equals("right"))
+                                    player1.setState(charState.Walking);
                             break;
                         case DOWN:
-                            if (!player1.checkState().equals(charState.Jumping))
+                            if (player1.isNotBusy())
                                 player1.setState(charState.Crouching);
                             break;
                         case ESCAPE:
@@ -443,15 +459,19 @@ public class ClashersMain extends Application {
                             System.out.println("paused = " + paused);
                             break;
                         case SPACE:
-                            player1.jump();
+                            if (player1.isNotBusy())
+                                player1.jump();
                             break;
                         case J:
-                            player1.attack();
+                            if (player1.isNotBusy()) {
+                                player1.attack();
+                                game.renderAttacks(player1,(Pane)curScene.getRoot());
+                            }
                             break;
                         case K:
-                            player1.special();
+                            if (player1.isNotBusy())
+                                player1.special();
                             break;
-                        default: player1.setState(charState.Neutral);
                     }
 
                 }
@@ -462,9 +482,8 @@ public class ClashersMain extends Application {
             @Override
             public void handle(KeyEvent event) {
                 if (currentRound) {
-                    if (!player1.checkState().equals(charState.Jumping))
+                    if (player1.isNotBusy())
                         player1.setState(charState.Neutral);
-
                 }
             }
         });
@@ -476,34 +495,40 @@ public class ClashersMain extends Application {
     }
     private List<Node> pauseMenu() {
         Pane pauseRoot = new Pane();
-        gui.setBaseScreen(pauseRoot).setStyle("-fx-background-color: rgb(0,0,0,10)");
+
+        //gui.setBaseScreen(pauseRoot).setStyle("-fx-background-color: rgb(0,0,0,10%)");
+        gui.setBaseScreen(pauseRoot).setStyle("-fx-background-color: rgb(255,255,255,)");
         Text pausedText = new Text(500*gui.getScalar(),200,"PAUSED");
         pausedText.setStyle("-fx-text-fill: rgb(0,0,0)");
         pausedText.setScaleX(10*gui.getScalar());
         pausedText.setScaleY(10*gui.getScalar());
 
         Button mList = new Button("Move List");
+        mList.setPrefSize(200,100);
         mList.setOnAction(event -> {
 
         });
 
 
         Button resume = new Button("Resume");
+        resume.setPrefSize(200,100);
         resume.setOnAction(event -> {
-            paused = false;
         });
 
         Button quit = new Button("Quit");
+        quit.setPrefSize(200,100);
         quit.setOnAction(event -> {
-
             resetReady();
             curScene.setRoot(initCharSelect());
+
         });
 
         VBox buttons = new VBox();
+        buttons.setSpacing(75);
+        pauseRoot.setBackground(new Background(new BackgroundFill(new Color(0,0,0,0.3), null, null)));
         buttons.getChildren().addAll(mList,resume,quit);
         pauseRoot.getChildren().addAll(buttons,pausedText);
-
+        paused = false;
         return pauseRoot.getChildren();
     }
     private void Victory() throws IOException {}
@@ -569,6 +594,14 @@ public class ClashersMain extends Application {
             singleplayer = true;
             curScene.setRoot(initCharSelect());
         });
+        Button btn1T = new Button("TUTORIAL");
+        btn1T.setPrefSize(200,100);
+        btn1T.setOnAction(event -> {
+            singleplayer = true;
+            training = true;
+            curScene.setRoot(initCharSelect());
+            player2 = new PBag(fighterRoot);
+        });
         Button btn2P = new Button("VERSUS");
         btn2P.setPrefSize(200,100);
         btn2P.setOnAction(event -> {
@@ -591,8 +624,8 @@ public class ClashersMain extends Application {
         HBox buttonsHbox = new HBox(50);
         buttonsHbox.setAlignment(Pos.CENTER);
 
-        buttonsHbox.getChildren().addAll(btn1P, btn2P);
-        buttonsVbox.getChildren().addAll(buttonsHbox, btnBack);
+        buttonsHbox.getChildren().addAll(btn1P, btn1T);
+        buttonsVbox.getChildren().addAll(buttonsHbox, btn2P, btnBack);
 
         ModeSelRoot.getChildren().addAll(gui.setBaseScreen(ModeSelRoot), buttonsVbox);
         return ModeSelRoot;
@@ -603,5 +636,4 @@ public class ClashersMain extends Application {
     public static void main(String[] args) {
         launch();
     }
-
 }
